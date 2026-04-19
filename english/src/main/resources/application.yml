@@ -1,0 +1,36 @@
+server:
+  port: 8089
+
+spring:
+  application:
+    name: english
+  profiles:
+    active: test
+  datasource:
+    url: jdbc:mysql://localhost:3306/english?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 10
+      max-lifetime: 1800000
+      connection-test-query: select 1
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  global-config:
+    db-config:
+      id-type: auto
+    banner: false
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+jwt:
+  secret: your-256-bit-secret-key-for-hs256-must-be-long-enough
+  expiration-ms: 86400000
+
+logging:
+  level:
+    root: info
+    com.study.english: info

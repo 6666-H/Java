@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.study.english.mapper.StudentWordModeProgressMapper">
+  <select id="countIncompleteByUnitAndMode" resultType="int">
+    SELECT COUNT(*) FROM word w
+    LEFT JOIN student_word_mode_progress p ON w.id = p.word_id
+      AND p.tenant_id = #{tenantId} AND p.user_id = #{userId} AND p.mode = #{mode}
+    WHERE w.unit_id = #{unitId}
+      AND (p.id IS NULL OR p.consecutive_correct &lt; 2)
+  </select>
+
+  <select id="selectIncompleteWordIdsByUnitAndMode" resultType="java.lang.Long">
+    SELECT w.id
+    FROM word w
+    LEFT JOIN student_word_mode_progress p ON w.id = p.word_id
+      AND p.tenant_id = #{tenantId} AND p.user_id = #{userId} AND p.mode = #{mode}
+    WHERE w.unit_id = #{unitId}
+      AND (p.id IS NULL OR p.consecutive_correct &lt; 2)
+    ORDER BY w.sort_order ASC
+    LIMIT #{limit}
+  </select>
+</mapper>

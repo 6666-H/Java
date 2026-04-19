@@ -1,0 +1,9 @@
+.DS_Store
+*.class
+.playwright-cli/
+output/
+
+english-web/node_modules/
+english-web/dist/
+english-web/.idea/
+english/src/main/resources/data/dictionarydata-all-sync.json

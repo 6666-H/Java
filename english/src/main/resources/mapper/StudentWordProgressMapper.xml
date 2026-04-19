@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.study.english.mapper.StudentWordProgressMapper">
+  <select id="selectNextReviewWordId" resultType="java.lang.Long">
+    SELECT p.word_id
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.next_review_time IS NOT NULL AND p.next_review_time &lt;= #{now}
+    ORDER BY p.next_review_time ASC
+    LIMIT 1
+  </select>
+
+  <!-- 错题优先：next_review_time&lt;=now 且 wrong_count>0 -->
+  <select id="selectWrongReviewWordIds" resultType="java.lang.Long">
+    SELECT p.word_id
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.is_wrong = 1 AND p.next_review_time IS NOT NULL AND p.next_review_time &lt;= #{now}
+    ORDER BY p.next_review_time ASC
+    LIMIT #{limit}
+  </select>
+
+  <!-- 今日复习：next_review_time&lt;=now，排除已选错题 -->
+  <select id="selectTodayReviewWordIds" resultType="java.lang.Long">
+    SELECT p.word_id
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.next_review_time IS NOT NULL AND p.next_review_time &lt;= #{now}
+      <if test="excludeWordIds != null and !excludeWordIds.isEmpty()">
+      AND p.word_id NOT IN
+      <foreach collection="excludeWordIds" item="id" open="(" separator="," close=")">
+        #{id}
+      </foreach>
+      </if>
+    ORDER BY p.next_review_time ASC
+    LIMIT #{limit}
+  </select>
+
+  <select id="countWrongReviewWords" resultType="int">
+    SELECT COUNT(*)
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.is_wrong = 1 AND p.next_review_time IS NOT NULL AND p.next_review_time &lt;= #{now}
+  </select>
+
+  <!-- 已到复习时间的单词数（含错题、强化池、普通复习） -->
+  <select id="countDueReviewWords" resultType="int">
+    SELECT COUNT(*)
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.next_review_time IS NOT NULL AND p.next_review_time &lt;= #{now}
+  </select>
+
+  <select id="countUnlearnedWordsInUnit" resultType="int">
+    SELECT COUNT(*)
+    FROM word w
+    WHERE w.unit_id = #{unitId}
+      AND NOT EXISTS (
+        SELECT 1 FROM student_word_progress p
+        WHERE p.word_id = w.id AND p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      )
+  </select>
+  <!-- ① 已到复习时间的单词 -->
+  <select id="selectDueReviewWordIds" resultType="java.lang.Long">
+    SELECT p.word_id
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.next_review_time IS NOT NULL AND p.next_review_time &lt;= #{now}
+    ORDER BY p.in_reinforcement DESC, p.next_review_time ASC
+    LIMIT #{limit}
+  </select>
+
+  <!-- ② 错词强化池单词（in_reinforcement=1，可能未到复习时间也优先） -->
+  <select id="selectReinforcementWordIds" resultType="java.lang.Long">
+    SELECT p.word_id
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.in_reinforcement = 1
+      <if test="excludeWordIds != null and !excludeWordIds.isEmpty()">
+      AND p.word_id NOT IN
+      <foreach collection="excludeWordIds" item="id" open="(" separator="," close=")">
+        #{id}
+      </foreach>
+      </if>
+    ORDER BY p.last_error_time DESC
+    LIMIT #{limit}
+  </select>
+
+  <!-- 本单元今日已学新词数量 -->
+  <select id="countTodayNewWordsInUnit" resultType="int">
+    SELECT COUNT(*)
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND DATE(p.created_at) = CURDATE()
+  </select>
+
+  <!-- 已掌握数（correct_count>=1） -->
+  <select id="countMasteredInUnit" resultType="int">
+    SELECT COUNT(*)
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.correct_count >= 1
+  </select>
+
+  <!-- 错词数（in_reinforcement=1 或 wrong_count>0 的重点词） -->
+  <select id="countErrorInUnit" resultType="int">
+    SELECT COUNT(DISTINCT p.word_id)
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND (p.in_reinforcement = 1 OR p.wrong_count > 0)
+  </select>
+
+  <!-- 书本内正确/错误总数（用于计算平均正确率） -->
+  <select id="sumCorrectWrongInBook" resultType="map">
+    SELECT COALESCE(SUM(p.correct_count), 0) as correctSum, COALESCE(SUM(p.wrong_count), 0) as wrongSum
+    FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id
+    INNER JOIN unit u ON u.id = w.unit_id AND u.book_id = #{bookId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+  </select>
+
+  <!-- 教材/单元模式：本单元已到期复习词（按 next_review_time 升序） -->
+  <select id="selectProductOverdueWordIdsInUnit" resultType="java.lang.Long">
+    SELECT p.word_id FROM student_word_progress p
+    INNER JOIN word w ON w.id = p.word_id AND w.unit_id = #{unitId}
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.next_review_time IS NOT NULL AND p.next_review_time &lt;= #{now}
+    ORDER BY p.next_review_time ASC
+    LIMIT #{limit}
+  </select>
+
+  <!-- 教材/单元模式：全局已到期复习词 -->
+  <select id="selectProductOverdueWordIdsGlobal" resultType="java.lang.Long">
+    SELECT p.word_id FROM student_word_progress p
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.next_review_time IS NOT NULL AND p.next_review_time &lt;= #{now}
+    ORDER BY p.next_review_time ASC
+    LIMIT #{limit}
+  </select>
+
+  <!-- 已掌握单词ID列表（correct_count>=1），全局，分页 -->
+  <select id="selectMasteredWordIds" resultType="java.lang.Long">
+    SELECT p.word_id FROM student_word_progress p
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.correct_count >= 1
+    ORDER BY p.last_study_at DESC
+    LIMIT #{limit} OFFSET #{offset}
+  </select>
+
+  <select id="countMasteredWords" resultType="int">
+    SELECT COUNT(*) FROM student_word_progress p
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.correct_count >= 1
+  </select>
+
+  <select id="selectRecentErrorWordIds" resultType="java.lang.Long">
+    SELECT p.word_id
+    FROM student_word_progress p
+    WHERE p.tenant_id = #{tenantId} AND p.user_id = #{userId}
+      AND p.is_wrong = 1 AND p.last_error_time IS NOT NULL AND p.last_error_time >= #{since}
+    ORDER BY p.last_error_time DESC
+    LIMIT #{limit}
+  </select>
+
+  <select id="countWeakWordsForDate" resultType="int">
+    SELECT COUNT(DISTINCT e.word_id)
+    FROM error_log e
+    INNER JOIN student_word_progress p
+      ON p.tenant_id = e.tenant_id AND p.user_id = e.user_id AND p.word_id = e.word_id
+    WHERE e.tenant_id = #{tenantId}
+      AND e.user_id = #{userId}
+      AND DATE(e.created_at) = #{date}
+      AND p.is_wrong = 1
+      <if test="errorType != null and errorType != '' and errorType != 'ALL'">
+        AND UPPER(e.error_type) = #{errorType}
+      </if>
+  </select>
+</mapper>

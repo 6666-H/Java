@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --curator-primary: #005bbf;
+  --curator-primary-strong: #1a73e8;
+  --curator-secondary: #4355b9;
+  --curator-tertiary: #9e4300;
+  --curator-surface: #f7f9fb;
+  --curator-surface-low: #f2f4f6;
+  --curator-surface-card: #ffffff;
+  --curator-surface-high: #e6e8ea;
+  --curator-surface-highest: #e0e3e5;
+  --curator-text: #191c1e;
+  --curator-text-muted: #414754;
+  --curator-outline: rgba(114, 119, 133, 0.16);
+  --curator-shadow: 0 28px 60px rgba(25, 28, 30, 0.06);
+  --curator-shadow-soft: 0 18px 40px rgba(25, 28, 30, 0.05);
+  --curator-shadow-float: 0 30px 60px rgba(0, 91, 191, 0.12);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: var(--curator-text);
+  background:
+    radial-gradient(circle at top left, rgba(216, 226, 255, 0.72), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(222, 224, 255, 0.58), transparent 28%),
+    var(--curator-surface);
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 320px;
+}
+
+.font-headline {
+  font-family: "Manrope", "Inter", "PingFang SC", sans-serif;
+}
+
+.curator-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(216, 226, 255, 0.58), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0)),
+    var(--curator-surface);
+}
+
+.curator-card {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: var(--curator-shadow-soft);
+}
+
+.curator-surface {
+  background: var(--curator-surface-card);
+  box-shadow: var(--curator-shadow-soft);
+}
+
+.curator-muted-surface {
+  background: var(--curator-surface-low);
+}
+
+.curator-ghost {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(18px);
+}
+
+.curator-gradient {
+  background: linear-gradient(135deg, var(--curator-primary) 0%, var(--curator-primary-strong) 100%);
+}
+
+.curator-accent-warm {
+  background: linear-gradient(135deg, #d16a1f 0%, #9e4300 100%);
+}
+
+.curator-section-title {
+  margin: 0;
+  font-family: "Manrope", "Inter", sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--curator-text);
+}
